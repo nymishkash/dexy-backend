@@ -9,6 +9,7 @@ import time
 import logging
 from db import JobsDB
 import asyncio
+from datetime import datetime
 
 class WellFoundScraper:
     def __init__(self):
@@ -65,7 +66,7 @@ class WellFoundScraper:
             self.logger.error(f"Error extracting NEXT_DATA: {str(e)}")
             return None
 
-    def _extract_jobs(self, data):
+    def _extract_jobs(self, data, request_time):
         jobs = []
         try:
             apollo_state = data['props']['pageProps']['apolloState']['data']
@@ -84,7 +85,8 @@ class WellFoundScraper:
                         'compensation': value.get('compensation'),
                         'remote': value.get('remote'),
                         'slug': value.get('slug'),
-                        'raw_data': value
+                        'raw_data': value,
+                        'request_time': request_time
                     }
                     jobs.append(job_info)
             
@@ -101,6 +103,9 @@ class WellFoundScraper:
             url = f"{self.base_url}/jobs"
             self.logger.info(f"Fetching jobs from {url}")
             
+            # Store request time
+            request_time = datetime.utcnow()
+            
             # Load the page
             self.driver.get(url)
             time.sleep(5)
@@ -110,7 +115,7 @@ class WellFoundScraper:
                 self.logger.error("Failed to fetch job data")
                 return
             
-            jobs = self._extract_jobs(next_data)
+            jobs = self._extract_jobs(next_data, request_time)
             
             # Save to database using await
             saved_count, skipped_count = await self.db.save_jobs(jobs)

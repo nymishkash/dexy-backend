@@ -10,10 +10,8 @@ class JobsDB:
     def __init__(self):
         self.logger = logging.getLogger("JobsDB")
         
-        # Load environment variables
         load_dotenv()
         
-        # Get database credentials
         db_url = os.getenv("DB_URL")
         db_token = os.getenv("DB_TOKEN")
         
@@ -22,7 +20,6 @@ class JobsDB:
         if not db_token:
             raise ValueError("DB_TOKEN not found in environment variables")
             
-        # Ensure URL uses the correct protocol
         if not db_url.startswith(('libsql://', 'https://')):
             raise ValueError("DB_URL must start with 'libsql://' or 'https://'")
             
@@ -38,14 +35,13 @@ class JobsDB:
             self.logger.error(f"Failed to create client: {str(e)}")
             raise
         
-        # Schedule the _init_db coroutine to run
         asyncio.create_task(self._init_db())
 
     async def _init_db(self):
-        """Initialize the jobs table if it doesn't exist"""
+        """Initialize the Jobs table if it doesn't exist"""
         try:
             create_table_sql = """
-            CREATE TABLE IF NOT EXISTS jobs (
+            CREATE TABLE IF NOT EXISTS Jobs (
                 id TEXT PRIMARY KEY,
                 title TEXT,
                 company TEXT,
@@ -55,6 +51,7 @@ class JobsDB:
                 remote BOOLEAN,
                 slug TEXT,
                 raw_data TEXT,
+                request_time TIMESTAMP,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """
@@ -73,7 +70,7 @@ class JobsDB:
     async def job_exists(self, job_id: str) -> bool:
         """Check if a job already exists in the database"""
         try:
-            result = await self.client.execute("SELECT 1 FROM jobs WHERE id = ?", [job_id])
+            result = await self.client.execute("SELECT 1 FROM Jobs WHERE id = ?", [job_id])
             return len(result.rows) > 0
         except Exception as e:
             self.logger.error(f"Error checking job existence: {str(e)}")
@@ -93,10 +90,10 @@ class JobsDB:
             raw_data_str = str(job['raw_data'])
 
             insert_sql = """
-            INSERT INTO jobs (
+            INSERT INTO Jobs (
                 id, title, company, company_logo, location, 
-                compensation, remote, slug, raw_data
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                compensation, remote, slug, raw_data, request_time
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """
             
             await self.client.execute(
@@ -110,7 +107,8 @@ class JobsDB:
                     job['compensation'],
                     1 if job['remote'] else 0,
                     job['slug'],
-                    raw_data_str
+                    raw_data_str,
+                    job['request_time']
                 ]
             )
             

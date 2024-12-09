@@ -5,6 +5,7 @@ import logging
 from .scraper import WellFoundScraper
 from .db import JobsDB
 from typing import Optional
+from fastapi.middleware.cors import CORSMiddleware
 
 logging.basicConfig(
     level=logging.INFO,
@@ -13,11 +14,23 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+
+# Add CORS middleware configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # Add your React app URL here (default Vite port)
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods including OPTIONS
+    allow_headers=["*"],
+)
+
 db = JobsDB()
 
 class JobSearchParams(BaseModel):
     location: Optional[str] = None 
     role: Optional[str] = None
+    sort: Optional[str] = None
+    limit: Optional[int] = None
 
 @app.post("/jobs/search")
 async def search_jobs(params: JobSearchParams):
@@ -34,6 +47,19 @@ async def search_jobs(params: JobSearchParams):
         else:
             jobs = await db.get_all_jobs()
             logger.info("Fetching all jobs")
+
+        # Sort jobs if sort parameter is provided
+        if params.sort:
+            if params.sort == "date":
+                jobs.sort(key=lambda x: x["request_time"], reverse=True)
+            elif params.sort == "company":
+                jobs.sort(key=lambda x: x["company"])
+            elif params.sort == "title":
+                jobs.sort(key=lambda x: x["title"])
+
+        # Limit results if limit parameter is provided
+        if params.limit and isinstance(params.limit, int) and params.limit > 0:
+            jobs = jobs[:params.limit]
 
         return JSONResponse(content={"jobs": jobs}, status_code=200)
 

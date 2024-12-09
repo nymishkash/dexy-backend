@@ -131,3 +131,119 @@ class JobsDB:
                 skipped_count += 1
                 
         return saved_count, skipped_count
+
+    async def get_all_jobs(self) -> List[Dict[str, Any]]:
+        """Get all jobs from the database"""
+        try:
+            result = await self.client.execute("""
+                SELECT 
+                    id,
+                    title,
+                    company,
+                    company_logo,
+                    location,
+                    compensation,
+                    remote,
+                    slug,
+                    raw_data,
+                    request_time,
+                    created_at
+                FROM Jobs 
+                ORDER BY request_time DESC
+            """)
+            columns = ['id', 'title', 'company', 'company_logo', 'location', 'compensation', 
+                      'remote', 'slug', 'raw_data', 'request_time', 'created_at']
+            return [dict(zip(columns, row)) for row in result.rows]
+        except Exception as e:
+            self.logger.error(f"Failed to fetch all jobs: {str(e)}")
+            raise
+
+    async def get_jobs_by_location(self, location: str) -> List[Dict[str, Any]]:
+        """Get jobs filtered by location"""
+        try:
+            result = await self.client.execute(
+                """
+                SELECT 
+                    id,
+                    title,
+                    company,
+                    company_logo,
+                    location,
+                    compensation,
+                    remote,
+                    slug,
+                    raw_data,
+                    request_time,
+                    created_at
+                FROM Jobs 
+                WHERE location LIKE ? 
+                ORDER BY request_time DESC
+                """,
+                [f"%{location}%"]
+            )
+            columns = ['id', 'title', 'company', 'company_logo', 'location', 'compensation', 
+                      'remote', 'slug', 'raw_data', 'request_time', 'created_at']
+            return [dict(zip(columns, row)) for row in result.rows]
+        except Exception as e:
+            self.logger.error(f"Failed to fetch jobs by location: {str(e)}")
+            raise
+
+    async def get_jobs_by_role(self, role: str) -> List[Dict[str, Any]]:
+        """Get jobs filtered by role/title"""
+        try:
+            result = await self.client.execute(
+                """
+                SELECT 
+                    id,
+                    title,
+                    company,
+                    company_logo,
+                    location,
+                    compensation,
+                    remote,
+                    slug,
+                    raw_data,
+                    request_time,
+                    created_at
+                FROM Jobs 
+                WHERE title LIKE ? 
+                ORDER BY request_time DESC
+                """,
+                [f"%{role}%"]
+            )
+            columns = ['id', 'title', 'company', 'company_logo', 'location', 'compensation', 
+                      'remote', 'slug', 'raw_data', 'request_time', 'created_at']
+            return [dict(zip(columns, row)) for row in result.rows]
+        except Exception as e:
+            self.logger.error(f"Failed to fetch jobs by role: {str(e)}")
+            raise
+
+    async def get_jobs_by_location_and_role(self, location: str, role: str) -> List[Dict[str, Any]]:
+        """Get jobs filtered by both location and role"""
+        try:
+            result = await self.client.execute(
+                """
+                SELECT 
+                    id,
+                    title,
+                    company,
+                    company_logo,
+                    location,
+                    compensation,
+                    remote,
+                    slug,
+                    raw_data,
+                    request_time,
+                    created_at
+                FROM Jobs 
+                WHERE location LIKE ? AND title LIKE ? 
+                ORDER BY request_time DESC
+                """,
+                [f"%{location}%", f"%{role}%"]
+            )
+            columns = ['id', 'title', 'company', 'company_logo', 'location', 'compensation', 
+                      'remote', 'slug', 'raw_data', 'request_time', 'created_at']
+            return [dict(zip(columns, row)) for row in result.rows]
+        except Exception as e:
+            self.logger.error(f"Failed to fetch jobs by location and role: {str(e)}")
+            raise

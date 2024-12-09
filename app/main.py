@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 import logging
 from .scraper import WellFoundScraper
+from .db import JobsDB
 
 logging.basicConfig(
     level=logging.INFO,
@@ -10,6 +11,43 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+db = JobsDB()
+
+@app.get("/jobs/all")
+async def get_all_jobs():
+    try:
+        jobs = await db.get_all_jobs()
+        return JSONResponse(content={"jobs": jobs}, status_code=200)
+    except Exception as e:
+        logger.error(f"Failed to fetch jobs: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/jobs/location/{location}")
+async def get_jobs_by_location(location: str):
+    try:
+        jobs = await db.get_jobs_by_location(location)
+        return JSONResponse(content={"jobs": jobs}, status_code=200)
+    except Exception as e:
+        logger.error(f"Failed to fetch jobs for location {location}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/jobs/role/{role}")
+async def get_jobs_by_role(role: str):
+    try:
+        jobs = await db.get_jobs_by_role(role)
+        return JSONResponse(content={"jobs": jobs}, status_code=200)
+    except Exception as e:
+        logger.error(f"Failed to fetch jobs for role {role}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/jobs/location/{location}/role/{role}")
+async def get_jobs_by_location_and_role(location: str, role: str):
+    try:
+        jobs = await db.get_jobs_by_location_and_role(location, role)
+        return JSONResponse(content={"jobs": jobs}, status_code=200)
+    except Exception as e:
+        logger.error(f"Failed to fetch jobs for location {location} and role {role}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/scrape")
 async def trigger_scrape():

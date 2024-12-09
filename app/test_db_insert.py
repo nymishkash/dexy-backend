@@ -2,10 +2,8 @@ import asyncio
 from db import JobsDB
 
 async def test_insert():
-    # Create an instance of JobsDB
     db = JobsDB()
 
-    # Define a dummy job data
     dummy_job = {
         'id': 'test-job-123',
         'title': 'Test Job Title',
@@ -18,7 +16,6 @@ async def test_insert():
         'raw_data': {'description': 'This is a test job description'}
     }
 
-    # Try to save the dummy job
     try:
         saved = await db.save_job(dummy_job)
         if saved:
@@ -30,6 +27,5 @@ async def test_insert():
     finally:
         await db.close()
 
-# Run the test
 if __name__ == "__main__":
     asyncio.run(test_insert()) 

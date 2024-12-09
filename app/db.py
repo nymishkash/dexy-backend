@@ -1,4 +1,3 @@
-# db.py
 from typing import List, Dict, Any
 import os
 from libsql_client import create_client
@@ -83,10 +82,8 @@ class JobsDB:
                 self.logger.info(f"Job {job['id']} already exists, skipping")
                 return False
 
-            # Convert location list to string
             location_str = ', '.join(job['location']) if job['location'] else ''
             
-            # Convert raw_data to string
             raw_data_str = str(job['raw_data'])
 
             insert_sql = """

@@ -1,8 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 import logging
 from .scraper import WellFoundScraper
 from .db import JobsDB
+from typing import Optional
 
 logging.basicConfig(
     level=logging.INFO,
@@ -13,40 +15,30 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 db = JobsDB()
 
-@app.get("/jobs/all")
-async def get_all_jobs():
+class JobSearchParams(BaseModel):
+    location: Optional[str] = None 
+    role: Optional[str] = None
+
+@app.post("/jobs/search")
+async def search_jobs(params: JobSearchParams):
     try:
-        jobs = await db.get_all_jobs()
+        if params.location and params.role:
+            jobs = await db.get_jobs_by_location_and_role(params.location, params.role)
+            logger.info(f"Fetching jobs for location {params.location} and role {params.role}")
+        elif params.location:
+            jobs = await db.get_jobs_by_location(params.location)
+            logger.info(f"Fetching jobs for location {params.location}")
+        elif params.role:
+            jobs = await db.get_jobs_by_role(params.role)
+            logger.info(f"Fetching jobs for role {params.role}")
+        else:
+            jobs = await db.get_all_jobs()
+            logger.info("Fetching all jobs")
+
         return JSONResponse(content={"jobs": jobs}, status_code=200)
+
     except Exception as e:
         logger.error(f"Failed to fetch jobs: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/jobs/location/{location}")
-async def get_jobs_by_location(location: str):
-    try:
-        jobs = await db.get_jobs_by_location(location)
-        return JSONResponse(content={"jobs": jobs}, status_code=200)
-    except Exception as e:
-        logger.error(f"Failed to fetch jobs for location {location}: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/jobs/role/{role}")
-async def get_jobs_by_role(role: str):
-    try:
-        jobs = await db.get_jobs_by_role(role)
-        return JSONResponse(content={"jobs": jobs}, status_code=200)
-    except Exception as e:
-        logger.error(f"Failed to fetch jobs for role {role}: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/jobs/location/{location}/role/{role}")
-async def get_jobs_by_location_and_role(location: str, role: str):
-    try:
-        jobs = await db.get_jobs_by_location_and_role(location, role)
-        return JSONResponse(content={"jobs": jobs}, status_code=200)
-    except Exception as e:
-        logger.error(f"Failed to fetch jobs for location {location} and role {role}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/scrape")
